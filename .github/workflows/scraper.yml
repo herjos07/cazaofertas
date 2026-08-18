@@ -1,0 +1,44 @@
+
+name: Cazador de Ofertas - Bot
+
+on:
+  schedule:
+    # Cada 60 minutos. GitHub Actions usa UTC y no garantiza el minuto exacto
+    # (puede haber unos minutos de retraso en horas pico), pero para este
+    # caso de uso (ofertas) es más que suficiente.
+    - cron: "0 * * * *"
+  workflow_dispatch: {}   # permite correrlo manualmente desde la pestaña Actions
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar bot de ofertas
+        working-directory: backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          AMAZON_ACCESS_KEY: ${{ secrets.AMAZON_ACCESS_KEY }}
+          AMAZON_SECRET_KEY: ${{ secrets.AMAZON_SECRET_KEY }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          AMAZON_COUNTRY: ${{ secrets.AMAZON_COUNTRY }}
+          ML_SITE_ID: ${{ secrets.ML_SITE_ID }}
+          ML_AFFILIATE_ID: ${{ secrets.ML_AFFILIATE_ID }}
+          MIN_DISCOUNT_PERCENT: "40"
+        run: python scraper.py
