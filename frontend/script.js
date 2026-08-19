@@ -8,8 +8,8 @@
 // (Project Settings > API). La anon key es PÚBLICA por diseño,
 // no es un secreto — la protección real la da la política RLS
 // "Lectura pública de ofertas activas" definida en schema.sql.
-const SUPABASE_URL = "https://nmpagbhpifbgyfebxaws.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tcGFnYmhwaWZiZ3lmZWJ4YXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwODIzNTQsImV4cCI6MjEwMjY1ODM1NH0.pODGCIwxTQ0EjRD0_cJOOPR835oUoBSZWYqwQ5UGHdo";
+const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
+const SUPABASE_ANON_KEY = "TU_ANON_KEY_AQUI";
 
 const statusEl = document.getElementById("status");
 const gridEl = document.getElementById("offers-grid");
@@ -58,7 +58,7 @@ async function loadOffers() {
 
   try {
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/offers?is_active=eq.true&order=last_seen_at.desc&limit=100`,
+      `${SUPABASE_URL}/rest/v1/offers?is_active=eq.true&affiliate_ready=eq.true&order=last_seen_at.desc&limit=100`,
       {
         headers: {
           apikey: SUPABASE_ANON_KEY,
