@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Cazador de Ofertas</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="https://herjos.com/logoherjos.png">
+
+  <style>
+    :root {
+      --navy: #0A1A3F;
+      --gold: #C9A646;
+      --gold-light: #FCE074;
+      --border: #E0E0E0;
+      --bg: #FFFFFF;
+      --text-muted: #555555;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: #f6f6f8;
+      color: var(--navy);
+    }
+    header {
+      background: var(--bg);
+      border-bottom: 2px solid var(--gold);
+      padding: 18px 24px;
+      text-align: center;
+    }
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+    .auth-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-top: 4px solid var(--gold);
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .auth-box input[type="password"] {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 10px 18px;
+      border: 2px solid var(--gold);
+      background: var(--gold);
+      color: var(--navy);
+      transition: all 0.2s ease;
+    }
+    button:hover { background: var(--navy); color: #fff; border-color: var(--gold); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #status { text-align: center; color: var(--text-muted); padding: 16px 0; }
+    #status.error { color: #b3261e; }
+    #status.success { color: #1e8e3e; }
+
+    .offer-row {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .offer-row img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      background: #fafafa;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .offer-info {
+      flex: 1;
+      min-width: 200px;
+    }
+    .offer-info h3 {
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      font-family: 'Playfair Display', serif;
+    }
+    .offer-info p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .offer-info a {
+      color: var(--navy);
+      font-size: 0.8rem;
+    }
+    .offer-actions {
+      display: flex;
+      gap: 8px;
+      flex: 1 1 320px;
+    }
+    .offer-actions input[type="text"] {
+      flex: 1;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🔑 Panel de Admin — Cazador de Ofertas</h1>
+  </header>
+
+  <main class="container">
+    <div class="auth-box">
+      <input type="password" id="secret-input" placeholder="Tu clave de administrador" />
+      <button id="load-btn">Cargar pendientes</button>
+    </div>
+
+    <div id="status"></div>
+    <div id="offers-list"></div>
+  </main>
+
+  <script>
+    // TODO: reemplaza con tus valores reales (los mismos que en frontend/script.js)
+    const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
+    const SUPABASE_ANON_KEY = "TU_ANON_KEY_AQUI";
+
+    const secretInput = document.getElementById("secret-input");
+    const loadBtn = document.getElementById("load-btn");
+    const statusEl = document.getElementById("status");
+    const listEl = document.getElementById("offers-list");
+
+    function getSecret() {
+      return secretInput.value.trim();
+    }
+
+    function setStatus(text, type) {
+      statusEl.textContent = text;
+      statusEl.className = type || "";
+    }
+
+    async function rpc(fnName, body) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `Error ${res.status}`);
+      }
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    }
+
+    function offerRowHTML(offer) {
+      const image = offer.image_url || "https://via.placeholder.com/64x64.png?text=%20";
+      return `
+        <div class="offer-row" data-id="${offer.id}">
+          <img src="${image}" alt="" />
+          <div class="offer-info">
+            <h3>${offer.title}</h3>
+            <p>${offer.source} · $${offer.sale_price} (antes $${offer.original_price}) · -${Math.round(offer.discount_percent)}%</p>
+            <a href="${offer.affiliate_url}" target="_blank" rel="noopener">Abrir producto original ↗</a>
+          </div>
+          <div class="offer-actions">
+            <input type="text" placeholder="Pega aquí el link de afiliado real" class="affiliate-input" />
+            <button class="save-btn">Guardar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadPending() {
+      const secret = getSecret();
+      if (!secret) {
+        setStatus("Escribe tu clave de administrador primero.", "error");
+        return;
+      }
+
+      setStatus("Cargando ofertas pendientes…");
+      listEl.innerHTML = "";
+
+      try {
+        const offers = await rpc("admin_list_pending_offers", { p_secret: secret });
+
+        if (!offers || !offers.length) {
+          setStatus("");
+          listEl.innerHTML = `<div class="empty-state">No hay ofertas pendientes por ahora. 🎉</div>`;
+          return;
+        }
+
+        setStatus(`${offers.length} oferta(s) esperando su link real.`, "success");
+        listEl.innerHTML = offers.map(offerRowHTML).join("");
+        attachSaveHandlers();
+      } catch (err) {
+        console.error(err);
+        setStatus("Clave incorrecta o error de conexión.", "error");
+      }
+    }
+
+    function attachSaveHandlers() {
+      document.querySelectorAll(".offer-row").forEach((row) => {
+        const btn = row.querySelector(".save-btn");
+        const input = row.querySelector(".affiliate-input");
+
+        btn.addEventListener("click", async () => {
+          const newUrl = input.value.trim();
+          if (!newUrl) {
+            input.focus();
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = "Guardando…";
+
+          try {
+            await rpc("admin_set_affiliate_link", {
+              p_secret: getSecret(),
+              p_offer_id: Number(row.dataset.id),
+              p_affiliate_url: newUrl,
+            });
+            row.remove();
+            if (!listEl.children.length) {
+              listEl.innerHTML = `<div class="empty-state">No hay ofertas pendientes por ahora. 🎉</div>`;
+            }
+          } catch (err) {
+            console.error(err);
+            btn.disabled = false;
+            btn.textContent = "Guardar";
+            setStatus("No se pudo guardar. Revisa tu clave o intenta de nuevo.", "error");
+          }
+        });
+      });
+    }
+
+    loadBtn.addEventListener("click", loadPending);
+    secretInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") loadPending();
+    });
+  </script>
+</body>
+</html>
